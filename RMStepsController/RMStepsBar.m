@@ -515,6 +515,10 @@
 
 - (void)recognizedTap:(UIGestureRecognizer *)recognizer {
     CGPoint touchLocation = [recognizer locationInView:self];
+    if (CGRectContainsPoint(self.cancelButton.frame, touchLocation)) {
+        [self cancelButtonTapped:self];
+        return;
+    }
     for(NSDictionary *aStepDict in self.stepDictionaries) {
         RMStep *step = aStepDict[RM_STEP_KEY];
         
