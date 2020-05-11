@@ -209,6 +209,8 @@
 @property (nonatomic, strong, readwrite) UIButton *cancelButton;
 
 @property (nonatomic, strong) NSMutableArray *stepDictionaries;
+@property (nonatomic, strong) UIScrollView *stepScrollView;
+@property (nonatomic, strong) UIView *scrollContentView;
 
 @end
 
@@ -234,15 +236,17 @@
         
         self.cancelSeperator.frame = CGRectMake(RM_CANCEL_BUTTON_WIDTH, frame.size.height-44, 0.5, frame.size.height);
         [self addSubview:self.cancelSeperator];
-        
+
+        [self addSubview:self.stepScrollView];
+
         NSNumber *cancelWidth = @(RM_CANCEL_BUTTON_WIDTH);
         
-        NSDictionary *bindingsDict = NSDictionaryOfVariableBindings(_topLine, _bottomLine, _cancelButton, _cancelSeperator);
+        NSDictionary *bindingsDict = NSDictionaryOfVariableBindings(_topLine, _bottomLine, _cancelButton, _cancelSeperator, _stepScrollView);
         NSDictionary *metricsDict = NSDictionaryOfVariableBindings(cancelWidth);
         
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-(0)-[_topLine]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-(0)-[_bottomLine]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
-        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"[_cancelButton(cancelWidth)]-(0)-[_cancelSeperator(0.5)]" options:0 metrics:metricsDict views:bindingsDict]];
+        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-(0)-[_cancelButton(cancelWidth)]-(0)-[_cancelSeperator(0.5)]-(0)-[_stepScrollView]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
         
         self.cancelButtonXConstraint = [[NSLayoutConstraint constraintsWithVisualFormat:@"|-(0)-[_cancelButton]" options:0 metrics:metricsDict views:bindingsDict] lastObject];
         [self addConstraint:self.cancelButtonXConstraint];
@@ -250,7 +254,14 @@
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_topLine(0.5)]-(43)-[_bottomLine(0.5)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_cancelButton(43)]-(0.5)-|" options:0 metrics:metricsDict views:bindingsDict]];
         [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_cancelSeperator(43)]-(0.5)-|" options:0 metrics:metricsDict views:bindingsDict]];
-        
+        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_stepScrollView(44)]-(0.5)-|" options:0 metrics:metricsDict views:bindingsDict]];
+
+        [self.stepScrollView addSubview:self.scrollContentView];
+        NSDictionary *scrollBindingsDict = NSDictionaryOfVariableBindings(_stepScrollView, _scrollContentView);
+        [self.stepScrollView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(0)-[_scrollContentView(44)]-(0)-|" options:0 metrics:nil views:scrollBindingsDict]];
+        [self.stepScrollView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(0)-[_scrollContentView]-(0)-|" options:0 metrics:nil views:scrollBindingsDict]];
+        [self.stepScrollView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_scrollContentView(>=_stepScrollView)]" options:0 metrics:nil views:scrollBindingsDict]];
+
         [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(recognizedTap:)]];
     }
     return self;
@@ -322,7 +333,6 @@
     }
 }
 
-
 - (UIButton *)cancelButton {
     if(!_cancelButton) {
         self.cancelButton = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -354,6 +364,27 @@
     return _stepDictionaries;
 }
 
+- (UIScrollView *)stepScrollView {
+    if(!_stepScrollView) {
+        self.stepScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
+        _stepScrollView.bounces = NO;
+        _stepScrollView.showsVerticalScrollIndicator = NO;
+        _stepScrollView.showsHorizontalScrollIndicator = NO;
+        _stepScrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    }
+
+    return _stepScrollView;
+}
+
+- (UIView *)scrollContentView {
+    if(!_scrollContentView) {
+        self.scrollContentView = [[UIView alloc] initWithFrame:CGRectZero];
+        _scrollContentView.translatesAutoresizingMaskIntoConstraints = NO;
+    }
+
+    return _scrollContentView;
+}
+
 - (void)setIndexOfSelectedStep:(NSUInteger)newIndexOfSelectedStep {
     [self setIndexOfSelectedStep:newIndexOfSelectedStep animated:NO];
 }
@@ -363,8 +394,8 @@
         NSDictionary *oldStepDict = [self.stepDictionaries objectAtIndex:_indexOfSelectedStep];
         NSDictionary *newStepDict = [self.stepDictionaries objectAtIndex:newIndexOfSelectedStep];
         
-        [self removeConstraint:newStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
-        [self addConstraint:oldStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
+        [self.scrollContentView removeConstraint:newStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
+        [self.scrollContentView addConstraint:oldStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
         
         _indexOfSelectedStep = newIndexOfSelectedStep;
         
@@ -466,35 +497,44 @@
             rightSeperator.seperatorColor = self.seperatorColor;
             rightSeperator.translatesAutoresizingMaskIntoConstraints = NO;
             
-            [self addSubview:rightSeperator];
+            [self.scrollContentView addSubview:rightSeperator];
         }
         
         RMStep *step = [self.dataSource stepsBar:self stepAtIndex:i];
         step.numberLabel.text = [NSString stringWithFormat:@"%lu", (long unsigned)i+1];
-        [self addSubview:step.stepView];
+        [self.scrollContentView addSubview:step.stepView];
         
-        UIView *leftEnd = leftSeperator ? leftSeperator : self.cancelSeperator;
-        UIView *rightEnd = rightSeperator ? rightSeperator : self;
+        UIView *leftEnd = leftSeperator ? leftSeperator : self.scrollContentView;
+        UIView *rightEnd = rightSeperator ? rightSeperator : self.scrollContentView;
         UIView *stepView = step.stepView;
         NSNumber *minimalStepWidth = @(RM_MINIMAL_STEP_WIDTH);
         NSNumber *seperatorWidth = @(RM_SEPERATOR_WIDTH);
         
         NSDictionary *bindingsDict = NSDictionaryOfVariableBindings(leftEnd, rightEnd, stepView);
         NSDictionary *metricsDict = NSDictionaryOfVariableBindings(minimalStepWidth, seperatorWidth);
+
+        [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(0)-[stepView(44)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
+        if (leftSeperator) {
+            if (rightSeperator) {
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[leftEnd]-(0)-[stepView]-(0)-[rightEnd]" options:0 metrics:metricsDict views:bindingsDict]];
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[rightEnd(seperatorWidth)]" options:0 metrics:metricsDict views:bindingsDict]];
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(0)-[rightEnd(44)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
+            } else {
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[leftEnd]-(0)-[stepView]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
+            }
+         } else {
+            if (rightSeperator) {
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-(0)-[stepView]-(0)-[rightEnd]" options:0 metrics:metricsDict views:bindingsDict]];
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[rightEnd(seperatorWidth)]" options:0 metrics:metricsDict views:bindingsDict]];
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-(0)-[rightEnd(44)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
+            } else {
+                [self.scrollContentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-(0)-[stepView]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
+            }
+         }
         
-        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[stepView(44)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
-        if(rightSeperator) {
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"[leftEnd]-(0)-[stepView]-(0)-[rightEnd]" options:0 metrics:metricsDict views:bindingsDict]];
-            
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"[rightEnd(seperatorWidth)]" options:0 metrics:metricsDict views:bindingsDict]];
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[rightEnd(44)]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
-        } else {
-            [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"[leftEnd]-(0)-[stepView]-(0)-|" options:0 metrics:metricsDict views:bindingsDict]];
-        }
-        
-        NSArray *widthConstraints = [NSLayoutConstraint constraintsWithVisualFormat:@"[stepView(minimalStepWidth)]" options:0 metrics:metricsDict views:bindingsDict];
+        NSArray *widthConstraints = [NSLayoutConstraint constraintsWithVisualFormat:@"H:[stepView(minimalStepWidth)]" options:0 metrics:metricsDict views:bindingsDict];
         if(i != self.indexOfSelectedStep) {
-            [self addConstraint:[widthConstraints lastObject]];
+            [self.scrollContentView addConstraint:[widthConstraints lastObject]];
         }
         
         if(leftSeperator && rightSeperator) {
@@ -521,8 +561,12 @@
     }
     for(NSDictionary *aStepDict in self.stepDictionaries) {
         RMStep *step = aStepDict[RM_STEP_KEY];
+
+        CGFloat stepX = step.stepView.frame.origin.x + self.stepScrollView.frame.origin.x - self.stepScrollView.contentOffset.x;
+        CGFloat stepY = step.stepView.frame.origin.y + self.stepScrollView.frame.origin.y - self.stepScrollView.contentOffset.y;
+        CGRect stepRect = CGRectMake(stepX, stepY, step.stepView.frame.size.width, step.stepView.frame.size.height);
         
-        if(CGRectContainsPoint(step.stepView.frame, touchLocation)) {
+        if(CGRectContainsPoint(stepRect, touchLocation)) {
             NSInteger index = [self.stepDictionaries indexOfObject:aStepDict];
             if(index < self.indexOfSelectedStep && self.allowBackward) {
                 [self.delegate stepsBar:self shouldSelectStepAtIndex:index];

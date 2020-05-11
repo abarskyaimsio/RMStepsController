@@ -32,20 +32,39 @@
 
 @implementation RMModalStepsController
 
+#pragma mark - Init and Dealloc
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.stepsBar.allowBackward = YES;
+}
+
 - (NSArray *)stepViewControllers {
-    UIViewController *firstStep = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep"];
-    firstStep.step.title = @"First";
+    UIViewController *step1 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep"];
+    step1.step.title = @"Step 1";
     
-    UIViewController *secondStep = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep2"];
-    secondStep.step.title = @"Second";
+    UIViewController *step2 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep2"];
+    step2.step.title = @"Step 2";
     
-    UIViewController *thirdStep = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep3"];
-    thirdStep.step.title = @"Third";
+    UIViewController *step3 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep3"];
+    step3.step.title = @"Step 3";
     
-    UIViewController *fourthStep = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep4"];
-    fourthStep.step.title = @"Fourth";
+    UIViewController *step4 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep4"];
+    step4.step.title = @"Step 4";
+
+    UIViewController *step5 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep5"];
+    step5.step.title = @"Step 5";
+
+    UIViewController *step6 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep6"];
+    step6.step.title = @"Step 6";
+
+    UIViewController *step7 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep7"];
+    step7.step.title = @"Step 7";
+
+    UIViewController *step8 = [self.storyboard instantiateViewControllerWithIdentifier:@"SomeStep8"];
+    step8.step.title = @"Step 8";
     
-    return @[firstStep, secondStep, thirdStep, fourthStep];
+    return @[step1, step2, step3, step4, step5, step6, step7, step8];
 }
 
 - (void)finishedAllSteps {
