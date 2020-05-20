@@ -38,6 +38,8 @@
 #define RM_STEP_KEY @"RM_STEP_KEY"
 #define RM_STEP_WIDTH_CONSTRAINT_KEY @"RM_STEP_WIDTH_CONSTRAINT_KEY"
 
+#define RM_SCROLL_ACTIVITY_TIMEOUT 20
+
 #pragma mark - Helper Categories
 
 @interface RMStep (Private)
@@ -212,6 +214,8 @@
 @property (nonatomic, strong) UIScrollView *stepScrollView;
 @property (nonatomic, strong) UIView *scrollContentView;
 
+@property NSTimer *scrollActivityTimer;
+
 @end
 
 @implementation RMStepsBar
@@ -367,6 +371,7 @@
 - (UIScrollView *)stepScrollView {
     if(!_stepScrollView) {
         self.stepScrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
+        _stepScrollView.delegate = self;
         _stepScrollView.bounces = NO;
         _stepScrollView.showsVerticalScrollIndicator = NO;
         _stepScrollView.showsHorizontalScrollIndicator = NO;
@@ -396,9 +401,11 @@
         
         [self.scrollContentView removeConstraint:newStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
         [self.scrollContentView addConstraint:oldStepDict[RM_STEP_WIDTH_CONSTRAINT_KEY]];
-        
+
         _indexOfSelectedStep = newIndexOfSelectedStep;
-        
+
+        [self.scrollActivityTimer invalidate];
+
         if(animated) {
             __block RMStepsBar *blockself = self;
             [UIView animateWithDuration:0.3 delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{
@@ -453,6 +460,8 @@
             
             [leftSeperator setRightColor:step.selectedBarColor animated:animated];
             [rightSeperator setLeftColor:step.selectedBarColor animated:animated];
+
+            [self.stepScrollView scrollRectToVisible:step.stepView.frame animated:animated];
         } else if(blockself.indexOfSelectedStep < idx) {
             void (^stepAnimations)(void) = ^(void) {
                 step.stepView.backgroundColor = step.disabledBarColor;
@@ -550,6 +559,7 @@
 }
 
 - (void)cancelButtonTapped:(id)sender {
+    [self.scrollActivityTimer invalidate];
     [self.delegate stepsBarDidSelectCancelButton:self];
 }
 
@@ -573,6 +583,20 @@
             }
         }
     }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    // invalidate timer if it exists
+    [self.scrollActivityTimer invalidate];
+    // set up timer to scroll the selected one to visible in 20 seconds
+    self.scrollActivityTimer = [NSTimer scheduledTimerWithTimeInterval:RM_SCROLL_ACTIVITY_TIMEOUT target:self
+                                                              selector:@selector(scrollActivityTimeout:) userInfo:nil repeats:NO];
+}
+
+- (void)scrollActivityTimeout:(NSTimer*)timer {
+    NSDictionary *currentStepDict = [self.stepDictionaries objectAtIndex:_indexOfSelectedStep];
+    RMStep *step = (RMStep *)currentStepDict[RM_STEP_KEY];
+    [self.stepScrollView scrollRectToVisible:step.stepView.frame animated:YES];
 }
 
 @end
